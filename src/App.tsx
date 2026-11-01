@@ -6,8 +6,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, useWindowDimensions } from 'react-native';
 import {
+  Play,
   Download,
-  FileCheck,
   Gamepad2,
   Film,
   Sliders,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Header } from './components/Header';
+import { DigimonWorld4Game } from './game/DigimonWorld4Game';
 import { DownloadHub } from './components/DownloadHub';
 import { RomVerifier } from './components/RomVerifier';
 import { ControlsSimulator } from './components/ControlsSimulator';
@@ -27,10 +28,11 @@ import { AuthModal } from './components/AuthModal';
 import { usePWAInstall } from './utils/usePWAInstall';
 import { playSound } from './utils/audioHaptics';
 
-type TabKey = 'downloads' | 'verifier' | 'controls' | 'media' | 'config' | 'faq';
+type TabKey = 'play' | 'downloads' | 'controls' | 'media' | 'config' | 'faq';
 
 function MainAppContent() {
-  const [activeTab, setActiveTab] = useState<TabKey>('downloads');
+  // Default to 'play' so user can instantly play Digimon World 4 like vel.gg/bo1z!
+  const [activeTab, setActiveTab] = useState<TabKey>('play');
   const [isMuted, setIsMuted] = useState(false);
   const [showPwaModal, setShowPwaModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -49,11 +51,11 @@ function MainAppContent() {
   };
 
   const tabs = [
-    { key: 'downloads' as TabKey, label: 'Get Game', icon: Download },
-    { key: 'verifier' as TabKey, label: 'Verifier', icon: FileCheck },
+    { key: 'play' as TabKey, label: 'Play Now', icon: Play },
+    { key: 'downloads' as TabKey, label: 'Get APK', icon: Download },
     { key: 'controls' as TabKey, label: 'Controls', icon: Gamepad2 },
     { key: 'media' as TabKey, label: 'Trailer', icon: Film },
-    { key: 'config' as TabKey, label: 'Graphics', icon: Sliders },
+    { key: 'config' as TabKey, label: 'Settings', icon: Sliders },
     { key: 'faq' as TabKey, label: 'FAQ', icon: HelpCircle },
   ];
 
@@ -72,13 +74,17 @@ function MainAppContent() {
 
         {/* Tab Body Content */}
         <View style={styles.tabContentArea}>
+          {activeTab === 'play' && (
+            <DigimonWorld4Game
+              onBackToHub={() => handleTabChange('downloads')}
+            />
+          )}
           {activeTab === 'downloads' && (
             <DownloadHub
-              onGoToVerifier={() => handleTabChange('verifier')}
+              onGoToVerifier={() => handleTabChange('controls')}
               onGoToControls={() => handleTabChange('controls')}
             />
           )}
-          {activeTab === 'verifier' && <RomVerifier />}
           {activeTab === 'controls' && <ControlsSimulator />}
           {activeTab === 'media' && <MediaGallery />}
           {activeTab === 'config' && <ConfigOptimizer />}
