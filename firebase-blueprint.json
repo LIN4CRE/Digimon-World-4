@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, game configuration presets, and tamer settings.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Authentication UID of the owner."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User email address."
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Tamer nickname or display name."
+        },
+        "starterDigimon": {
+          "type": "string",
+          "enum": ["dorumon", "agumon", "veemon", "guilmon"],
+          "description": "Selected companion starter Digimon."
+        },
+        "tamerRank": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Tamer rank title."
+        },
+        "resolutionScale": {
+          "type": "number",
+          "description": "Saved graphics resolution scale percentage."
+        },
+        "antiAliasing": {
+          "type": "string",
+          "maxLength": 20,
+          "description": "Saved anti-aliasing technique."
+        },
+        "buttonScale": {
+          "type": "string",
+          "enum": ["small", "medium", "large"],
+          "description": "Saved on-screen touch control button size."
+        },
+        "buttonOpacity": {
+          "type": "number",
+          "description": "Saved on-screen control opacity."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user account profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of the last profile modification."
+        }
+      },
+      "required": ["userId", "starterDigimon"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of user profiles keyed by their Firebase Auth UID."
+    }
+  }
+}

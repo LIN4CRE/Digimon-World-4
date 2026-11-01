@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'starterDigimon'])
+        && data.userId is string
+        && data.userId == request.auth.uid
+        && data.starterDigimon is string
+        && (data.starterDigimon in ['dorumon', 'agumon', 'veemon', 'guilmon'])
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 50))
+        && (!('tamerRank' in data) || (data.tamerRank is string && data.tamerRank.size() <= 30))
+        && (!('resolutionScale' in data) || (data.resolutionScale is number))
+        && (!('antiAliasing' in data) || (data.antiAliasing is string && data.antiAliasing.size() <= 20))
+        && (!('buttonScale' in data) || (data.buttonScale in ['small', 'medium', 'large']))
+        && (!('buttonOpacity' in data) || (data.buttonOpacity is number));
+    }
+
+    // Test connection document for app health checks
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User profiles collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data)
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+  }
+}

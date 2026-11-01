@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, useWindowDimensions } from 'react-native';
 import {
   Download,
   FileCheck,
@@ -13,6 +13,7 @@ import {
   Sliders,
   HelpCircle,
 } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Header } from './components/Header';
 import { DownloadHub } from './components/DownloadHub';
 import { RomVerifier } from './components/RomVerifier';
@@ -22,18 +23,22 @@ import { ConfigOptimizer } from './components/ConfigOptimizer';
 import { ManualFaq } from './components/ManualFaq';
 import { PWAInstallModal } from './components/PWAInstallModal';
 import { PhoneQrModal } from './components/PhoneQrModal';
+import { AuthModal } from './components/AuthModal';
 import { usePWAInstall } from './utils/usePWAInstall';
 import { playSound } from './utils/audioHaptics';
 
 type TabKey = 'downloads' | 'verifier' | 'controls' | 'media' | 'config' | 'faq';
 
-export default function App() {
+function MainAppContent() {
   const [activeTab, setActiveTab] = useState<TabKey>('downloads');
   const [isMuted, setIsMuted] = useState(false);
   const [showPwaModal, setShowPwaModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { width } = useWindowDimensions();
+  const isTabletOrDesktop = width >= 768;
 
   const handleTabChange = (tab: TabKey) => {
     if (!isMuted) playSound('menu');
@@ -55,11 +60,12 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
-        {/* Header */}
+        {/* Responsive Header */}
         <Header
           onInstallPwa={() => setShowPwaModal(true)}
           canInstallPwa={!isInstalled}
           onShowQr={() => setShowQrModal(true)}
+          onShowAuth={() => setShowAuthModal(true)}
           isMuted={isMuted}
           onToggleMute={() => setIsMuted((prev) => !prev)}
         />
@@ -79,8 +85,8 @@ export default function App() {
           {activeTab === 'faq' && <ManualFaq />}
         </View>
 
-        {/* React Native Mobile Bottom Navigation Bar */}
-        <View style={styles.bottomNav}>
+        {/* Responsive Bottom Navigation Bar */}
+        <View style={[styles.bottomNav, isTabletOrDesktop && styles.bottomNavWide]}>
           {tabs.map((t) => {
             const isActive = activeTab === t.key;
             const Icon = t.icon;
@@ -99,7 +105,7 @@ export default function App() {
                   ]}
                 >
                   <Icon
-                    size={18}
+                    size={17}
                     color={isActive ? '#ffffff' : '#94a3b8'}
                   />
                 </View>
@@ -116,6 +122,12 @@ export default function App() {
           })}
         </View>
       </View>
+
+      {/* Tamer Authentication & Offline Sync Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
 
       {/* PWA Home Screen Installation Modal */}
       <PWAInstallModal
@@ -134,6 +146,14 @@ export default function App() {
         onClose={() => setShowQrModal(false)}
       />
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <MainAppContent />
+    </AuthProvider>
   );
 }
 
@@ -160,6 +180,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     zIndex: 40,
+  },
+  bottomNavWide: {
+    maxWidth: 720,
+    alignSelf: 'center',
+    width: '100%',
+    borderRadius: 20,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   navTabItem: {
     alignItems: 'center',

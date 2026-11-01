@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import {
   Gamepad2,
   Swords,
@@ -24,18 +24,35 @@ import {
   PlayableDigimon,
 } from '../utils/controlsMap';
 import { playSound, triggerHaptic } from '../utils/audioHaptics';
+import { useAuth } from '../context/AuthContext';
 
 export const ControlsSimulator: React.FC = () => {
-  const [selectedDigimon, setSelectedDigimon] = useState<PlayableDigimon>(PLAYABLE_DIGIMON[0]);
-  const [currentHp, setCurrentHp] = useState<number>(selectedDigimon.baseHp);
-  const [currentMp, setCurrentMp] = useState<number>(selectedDigimon.baseMp);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 640;
+  const { tamerData, updateTamerSettings } = useAuth();
+
+  // Selected Digimon synced with user's tamer profile
+  const initialDigimon =
+    PLAYABLE_DIGIMON.find((d) => d.id === tamerData.starterDigimon) || PLAYABLE_DIGIMON[0];
+  const [selectedDigimon, setSelectedDigimon] = useState<PlayableDigimon>(initialDigimon);
+  const [currentHp, setCurrentHp] = useState<number>(initialDigimon.baseHp);
+  const [currentMp, setCurrentMp] = useState<number>(initialDigimon.baseMp);
   const [activeAction, setActiveAction] = useState<string>('Idle in Lobby');
   const [actionEffect, setActionEffect] = useState<'slash' | 'jump' | 'guard' | 'heal' | 'cast' | null>(null);
   const [damagePopup, setDamagePopup] = useState<string | null>(null);
 
-  // Touch button customization settings (same as Android port launcher!)
-  const [buttonScale, setButtonScale] = useState<'small' | 'medium' | 'large'>('medium');
-  const [buttonOpacity, setButtonOpacity] = useState<number>(0.85);
+  // Touch button customization settings (synced with offline storage & cloud)
+  const buttonScale = tamerData.buttonScale || 'medium';
+  const buttonOpacity = tamerData.buttonOpacity ?? 0.85;
+
+  useEffect(() => {
+    const matched = PLAYABLE_DIGIMON.find((d) => d.id === tamerData.starterDigimon);
+    if (matched) {
+      setSelectedDigimon(matched);
+      setCurrentHp(matched.baseHp);
+      setCurrentMp(matched.baseMp);
+    }
+  }, [tamerData.starterDigimon]);
 
   // Analog stick position
   const [stickPos, setStickPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -143,6 +160,7 @@ export const ControlsSimulator: React.FC = () => {
                 onPress={() => {
                   playSound('menu');
                   setSelectedDigimon(d);
+                  updateTamerSettings({ starterDigimon: d.id as any });
                 }}
                 style={[
                   styles.digimonTab,
@@ -443,12 +461,14 @@ export const ControlsSimulator: React.FC = () => {
                   key={s}
                   onPress={() => {
                     playSound('menu');
-                    setButtonScale(s);
+                    updateTamerSettings({ buttonScale: s });
                   }}
                   style={[
                     styles.scaleToggle,
                     buttonScale === s && styles.scaleToggleActive,
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set button scale to ${s}`}
                 >
                   <Text
                     style={[
@@ -474,7 +494,7 @@ export const ControlsSimulator: React.FC = () => {
               max="1.0"
               step="0.05"
               value={buttonOpacity}
-              onChange={(e) => setButtonOpacity(parseFloat(e.target.value))}
+              onChange={(e) => updateTamerSettings({ buttonOpacity: parseFloat(e.target.value) })}
               className="w-full accent-orange-500 cursor-pointer"
             />
           </View>

@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Smartphone, Download, Volume2, VolumeX, ShieldCheck, Sparkles, QrCode } from 'lucide-react';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import {
+  Smartphone,
+  Volume2,
+  VolumeX,
+  QrCode,
+  User as UserIcon,
+  Cloud,
+  CloudOff,
+  RefreshCw,
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { playSound } from '../utils/audioHaptics';
 
 interface HeaderProps {
   onInstallPwa: () => void;
   canInstallPwa: boolean;
   onShowQr: () => void;
+  onShowAuth: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
 }
@@ -15,11 +26,17 @@ export const Header: React.FC<HeaderProps> = ({
   onInstallPwa,
   canInstallPwa,
   onShowQr,
+  onShowAuth,
   isMuted,
   onToggleMute,
 }) => {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 480;
+  const { user, isOnline, pendingSyncCount } = useAuth();
+
   return (
     <View style={styles.container}>
+      {/* App Branding */}
       <View style={styles.left}>
         <View style={styles.iconWrapper}>
           <img
@@ -27,8 +44,14 @@ export const Header: React.FC<HeaderProps> = ({
             alt="Digimon World 4"
             className="w-10 h-10 rounded-xl shadow-lg border border-orange-500/40 object-cover"
           />
-          <View style={styles.onlineBadge} />
+          <View
+            style={[
+              styles.onlineBadge,
+              { backgroundColor: isOnline ? '#22c55e' : '#f59e0b' },
+            ]}
+          />
         </View>
+
         <View style={styles.titles}>
           <View style={styles.badgeRow}>
             <Text style={styles.titleText}>DIGIMON WORLD 4</Text>
@@ -36,11 +59,59 @@ export const Header: React.FC<HeaderProps> = ({
               <Text style={styles.pillText}>NATIVE ARM64</Text>
             </View>
           </View>
-          <Text style={styles.subtitleText}>Mobile Port & English Companion</Text>
+          <View style={styles.statusRow}>
+            <Text style={styles.subtitleText}>Mobile Port &amp; English Companion</Text>
+            <View style={styles.syncStatusPill}>
+              {isOnline ? (
+                <Cloud size={10} color="#34d399" />
+              ) : (
+                <CloudOff size={10} color="#fbbf24" />
+              )}
+              <Text
+                style={[
+                  styles.syncStatusText,
+                  { color: isOnline ? '#34d399' : '#fbbf24' },
+                ]}
+              >
+                {isOnline ? (pendingSyncCount > 0 ? `${pendingSyncCount} queued` : 'Online') : 'Offline'}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
 
+      {/* Header Actions */}
       <View style={styles.right}>
+        {/* User Account / Profile Button */}
+        <TouchableOpacity
+          onPress={() => {
+            playSound('menu');
+            onShowAuth();
+          }}
+          style={[
+            styles.authButton,
+            user && styles.authButtonLoggedIn,
+          ]}
+          accessibilityLabel={user ? `Signed in as ${user.displayName || user.email}` : 'Sign In or Sign Up'}
+          accessibilityRole="button"
+        >
+          {user ? (
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarLetter}>
+                {(user.displayName || user.email || 'T')[0].toUpperCase()}
+              </Text>
+            </View>
+          ) : (
+            <UserIcon size={16} color="#f97316" />
+          )}
+          {!isCompact && (
+            <Text style={styles.authButtonText}>
+              {user ? (user.displayName || 'Tamer') : 'Tamer Auth'}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Audio Mute Toggle */}
         <TouchableOpacity
           onPress={() => {
             playSound('menu');
@@ -51,12 +122,13 @@ export const Header: React.FC<HeaderProps> = ({
           accessibilityRole="button"
         >
           {isMuted ? (
-            <VolumeX size={18} color="#94a3b8" />
+            <VolumeX size={16} color="#94a3b8" />
           ) : (
-            <Volume2 size={18} color="#38bdf8" />
+            <Volume2 size={16} color="#38bdf8" />
           )}
         </TouchableOpacity>
 
+        {/* Scan to Phone QR */}
         <TouchableOpacity
           onPress={() => {
             playSound('menu');
@@ -66,9 +138,10 @@ export const Header: React.FC<HeaderProps> = ({
           accessibilityLabel="Scan to Phone"
           accessibilityRole="button"
         >
-          <QrCode size={18} color="#fb923c" />
+          <QrCode size={16} color="#fb923c" />
         </TouchableOpacity>
 
+        {/* Install PWA Button */}
         {canInstallPwa && (
           <TouchableOpacity
             onPress={() => {
@@ -79,8 +152,8 @@ export const Header: React.FC<HeaderProps> = ({
             accessibilityLabel="Install App to Phone"
             accessibilityRole="button"
           >
-            <Smartphone size={15} color="#ffffff" />
-            <Text style={styles.installText}>Install PWA</Text>
+            <Smartphone size={14} color="#ffffff" />
+            {!isCompact && <Text style={styles.installText}>Install PWA</Text>}
           </TouchableOpacity>
         )}
       </View>
@@ -93,16 +166,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: '#090d16',
     borderBottomWidth: 1,
     borderBottomColor: '#1e293b',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   left: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    flexShrink: 1,
   },
   iconWrapper: {
     position: 'relative',
@@ -114,7 +190,6 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#22c55e',
     borderWidth: 2,
     borderColor: '#090d16',
   },
@@ -124,11 +199,12 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexWrap: 'wrap',
   },
   titleText: {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -136,31 +212,84 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(249, 115, 22, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(249, 115, 22, 0.4)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
   },
   pillText: {
     color: '#f97316',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+    flexWrap: 'wrap',
+  },
   subtitleText: {
     color: '#94a3b8',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '500',
-    marginTop: 1,
+  },
+  syncStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#111827',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  syncStatusText: {
+    fontSize: 9,
+    fontWeight: '700',
   },
   right: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexWrap: 'nowrap',
+  },
+  authButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1e293b',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  authButtonLoggedIn: {
+    borderColor: 'rgba(249, 115, 22, 0.5)',
+    backgroundColor: 'rgba(249, 115, 22, 0.12)',
+  },
+  avatarCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#ea580c',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarLetter: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  authButtonText: {
+    color: '#f8fafc',
+    fontSize: 11,
+    fontWeight: '700',
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#1e293b',
     alignItems: 'center',
     justifyContent: 'center',
@@ -168,19 +297,15 @@ const styles = StyleSheet.create({
   installButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: '#ea580c',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 18,
-    shadowColor: '#ea580c',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   installText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
 });

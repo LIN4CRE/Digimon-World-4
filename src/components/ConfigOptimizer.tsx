@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import {
   Sliders,
@@ -11,15 +11,25 @@ import {
   Sparkles,
   Info,
   CheckCircle2,
+  Cloud,
 } from 'lucide-react';
 import { playSound } from '../utils/audioHaptics';
+import { useAuth } from '../context/AuthContext';
 
 export const ConfigOptimizer: React.FC = () => {
-  const [resolutionScale, setResolutionScale] = useState<number>(67);
-  const [antiAliasing, setAntiAliasing] = useState<'Off' | 'FXAA' | 'SMAA 2x' | 'SMAA 4x'>('SMAA 2x');
+  const { tamerData, updateTamerSettings } = useAuth();
+  const [resolutionScale, setResolutionScale] = useState<number>(tamerData.resolutionScale || 67);
+  const [antiAliasing, setAntiAliasing] = useState<'Off' | 'FXAA' | 'SMAA 2x' | 'SMAA 4x'>(
+    (tamerData.antiAliasing as any) || 'SMAA 2x'
+  );
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | 'Fill'>('16:9');
   const [textureFilter, setTextureFilter] = useState<'Bilinear' | 'Trilinear' | 'Aniso 8x' | 'Aniso 16x'>('Bilinear');
   const [copiedConfig, setCopiedConfig] = useState(false);
+
+  useEffect(() => {
+    if (tamerData.resolutionScale) setResolutionScale(tamerData.resolutionScale);
+    if (tamerData.antiAliasing) setAntiAliasing(tamerData.antiAliasing as any);
+  }, [tamerData.resolutionScale, tamerData.antiAliasing]);
 
   const applyPreset = (preset: 'balanced' | 'flagship' | 'battery') => {
     playSound('heal');
@@ -28,16 +38,19 @@ export const ConfigOptimizer: React.FC = () => {
       setAntiAliasing('SMAA 4x');
       setAspectRatio('16:9');
       setTextureFilter('Aniso 16x');
+      updateTamerSettings({ resolutionScale: 100, antiAliasing: 'SMAA 4x' });
     } else if (preset === 'balanced') {
       setResolutionScale(67);
       setAntiAliasing('SMAA 2x');
       setAspectRatio('16:9');
       setTextureFilter('Bilinear');
+      updateTamerSettings({ resolutionScale: 67, antiAliasing: 'SMAA 2x' });
     } else {
       setResolutionScale(50);
       setAntiAliasing('Off');
       setAspectRatio('16:9');
       setTextureFilter('Bilinear');
+      updateTamerSettings({ resolutionScale: 50, antiAliasing: 'Off' });
     }
   };
 
@@ -128,11 +141,14 @@ Vulkan Driver = System Default`;
                 onPress={() => {
                   playSound('menu');
                   setResolutionScale(scale);
+                  updateTamerSettings({ resolutionScale: scale });
                 }}
                 style={[
                   styles.scalePill,
                   resolutionScale === scale && styles.scalePillActive,
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Set resolution scale to ${scale}%`}
               >
                 <Text
                   style={[
@@ -163,11 +179,14 @@ Vulkan Driver = System Default`;
                 onPress={() => {
                   playSound('menu');
                   setAntiAliasing(aa);
+                  updateTamerSettings({ antiAliasing: aa });
                 }}
                 style={[
                   styles.scalePill,
                   antiAliasing === aa && styles.scalePillActive,
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Set anti-aliasing to ${aa}`}
               >
                 <Text
                   style={[
