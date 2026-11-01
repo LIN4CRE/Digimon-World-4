@@ -1,0 +1,6 @@
+{
+  "name": "Digimon World 4 Mobile - Native Port & Companion",
+  "description": "Native Android ARM64 port, complete English guide, APK downloads, ROM hash verifier, and touch controls simulator for Digimon World 4.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
